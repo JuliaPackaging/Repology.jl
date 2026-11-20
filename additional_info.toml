@@ -97,6 +97,18 @@ repositories = ["https://github.com/apache/arrow-nanoarrow.git"]
 tag_patterns = [{regex = "^apache-arrow-nanoarrow-(\\d[^/]*)$"}]
 url_patterns = ["^https://github\\.com/apache/arrow-nanoarrow/archive/(?:refs/tags/)?(?:apache-arrow-nanoarrow-)?v?(\\d[^/]*)\\.tar\\.gz$"]
 
+[lmdb]
+repositories = ["https://git.openldap.org/openldap/openldap.git", "https://github.com/openldap/openldap.git"]
+tag_patterns = [{regex = "^LMDB_(\\d+\\.\\d+\\.\\d+)$"}]
+url_patterns = [
+    "^https?://git\\.openldap\\.org/openldap/openldap/-/archive/LMDB_(\\d+\\.\\d+\\.\\d+)/openldap-LMDB_\\1\\.tar\\.gz$",
+    "^https?://github\\.com/openldap/openldap/archive/(?:refs/tags/)?LMDB_(\\d+\\.\\d+\\.\\d+)\\.(?:tar\\.gz|zip)$",
+]
+
+[openldap]
+repositories = ["https://git.openldap.org/openldap/openldap.git", "https://github.com/openldap/openldap.git"]
+tag_patterns = [{regex = "^OPENLDAP_REL_ENG_(\\d+)_(\\d+)_(\\d+)$", version = "\\1.\\2.\\3"}]
+
 [rocm-llvm]
 repositories = ["https://github.com/ROCm/llvm-project.git"]
 tag_patterns = [{regex = "^rocm-(\\d+\\.\\d+\\.\\d+)$"}]

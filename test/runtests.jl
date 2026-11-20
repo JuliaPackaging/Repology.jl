@@ -42,6 +42,49 @@ end
     @test Repology.version_from_tag("sdl3", "release-3.2.0") == "3.2.0"
 end
 
+@testset "LMDB releases in the OpenLDAP repository" begin
+    releases = [("cfb061a8f7879f865536fee7d1d8d9737833bbdb", "0.9.35"),
+                ("2562c3297402d82bbc049c7e645515edb4079eba", "1.0.0"),
+                ("c279e0477c713076893e8c2b1a6337e421c15867", "1.0.2"),
+                ("d4dc8e21ddbcb0c3d6a53b3c19c87559fad2b402", "1.0.3")]
+    for repo in ("https://git.openldap.org/openldap/openldap.git", "https://github.com/openldap/openldap.git")
+        remote = something(first(Repology.forge_repository(repo)), repo)
+        previous = get(Repology._LS_REMOTE_CACHE, remote, nothing)
+        try
+            Repology._LS_REMOTE_CACHE[remote] = Dict(sha => ["LMDB_" * version] for (sha, version) in releases)
+            Repology._LS_REMOTE_CACHE[remote]["e460f00874352c3d2cdbca8a00a4112c7bc633ab"] = ["OPENLDAP_REL_ENG_2_6_9"]
+            for (sha, version) in releases
+                @test identify(repo; commit=sha) == Identification("lmdb", version, "git-tag")
+            end
+            @test identify(repo; commit="e460f00874352c3d2cdbca8a00a4112c7bc633ab") == Identification("openldap", "2.6.9", "git-tag")
+            @test identify(repo) == Identification("openldap", nothing, "repository")
+        finally
+            isnothing(previous) ? delete!(Repology._LS_REMOTE_CACHE, remote) : (Repology._LS_REMOTE_CACHE[remote] = previous)
+        end
+    end
+    for scheme in ("http", "https"), version in ("0.9.25", "0.9.27", "0.9.33", "0.9.35", "1.0.0", "1.0.2", "1.0.3")
+        for url in ("$scheme://git.openldap.org/openldap/openldap/-/archive/LMDB_$version/openldap-LMDB_$version.tar.gz",
+                    "$scheme://github.com/openldap/openldap/archive/refs/tags/LMDB_$version.tar.gz",
+                    "$scheme://github.com/openldap/openldap/archive/LMDB_$version.zip")
+            @test identify(url) == Identification("lmdb", version, "url-pattern")
+        end
+    end
+    @test Repology.tag_project(["lmdb", "openldap"], "LMDB_1.0.3") == "lmdb"
+    @test identify("https://github.com/openldap/openldap/archive/refs/tags/OPENLDAP_REL_ENG_2_6_9.tar.gz") == Identification("openldap", "2.6.9", "tag-scheme")
+    full = identify("https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-2.5.19.tgz")
+    @test (full.project, full.version) == ("openldap", "2.5.19")
+    patterns = Regex.(Repology.additional_info()["lmdb"]["url_patterns"])
+    for url in ("", "https://git.openldap.org/openldap/openldap/-/archive/LMDB_1.0.3/openldap-LMDB_1.0.2.tar.gz",
+                "https://git.openldap.org/openldap/openldap/-/archive/LMDB_1.0.3/openldap-LMDB_1.0.3.tar.gz.asc",
+                "https://github.com/openldap/openldap/archive/refs/tags/LMDB_1.0.3.tar.gz.sig",
+                "https://github.com/other/openldap/archive/refs/tags/LMDB_1.0.3.tar.gz",
+                "https://github.com/openldap/openldap/archive/refs/tags/OPENLDAP_REL_ENG_2_6_9.tar.gz")
+        @test !any(p -> occursin(p, url), patterns)
+    end
+    @test Repology.tag_project(["lmdb", "openldap"], "LMDB_1.0.3.asc") === nothing
+    @test Repology.tag_project(["lmdb", "openldap"], "LMDB_1.0") === nothing
+end
+
 @testset "handwritten source regressions" begin
     @test identify("https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz") == Identification("libiconv", "1.18", "url-pattern")
     @test identify("https://github.com/git-for-windows/git/releases/download/v2.42.0.windows.2/Git-2.42.0.2-32-bit.tar.bz2") == Identification("git-for-windows", "2.42.0.windows.2", "url-pattern")
